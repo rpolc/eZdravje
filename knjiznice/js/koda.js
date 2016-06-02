@@ -4,7 +4,7 @@ var queryUrl = baseUrl + '/query';
 
 var username = "ois.seminar";
 var password = "ois4fri";
-
+var authorization = "Basic " + btoa(username + ":" + password);
 
 /**
  * Prijava v sistem z privzetim uporabnikom za predmet OIS in pridobitev
@@ -24,7 +24,7 @@ function getSessionId() {
 
 /**
  * Generator podatkov za novega pacienta, ki bo uporabljal aplikacijo. Pri
- * generiranju podatkov je potrebno najprej kreirati novega pacienta z
+ * generiranju podatkov je potrebno najprej kreirati novega pacienta 
  * določenimi osebnimi podatki (ime, priimek in datum rojstva) ter za njega
  * shraniti nekaj podatkov o vitalnih znakih.
  * @param stPacienta zaporedna številka pacienta (1, 2 ali 3)
@@ -32,12 +32,13 @@ function getSessionId() {
  */
 function generirajPodatke(stPacienta) {
   var ehrId = "";
-  var ime, priimek, datumrojstva, visina, teza, vpritisk, npritisk, utrip, alergije, temperatura;
+  var ime, priimek, datumrojstva, spol, visina, teza, vpritisk, npritisk, utrip, alergije, temperatura;
   switch(stPacienta){
     case 1: //Janez Novak
       ime="Janez";
       priimek="Novak";
       datumrojstva="1978-12-6T18:24";
+      spol="m";
       visina="192";
       teza="130";
       vpritisk="140";
@@ -49,6 +50,7 @@ function generirajPodatke(stPacienta) {
       ime="Mojca";
       priimek="Kovač";
       datumrojstva="1994-5-30T09:30";
+      spol="z";
       visina="165";
       teza="58";
       vpritisk="120";
@@ -60,6 +62,7 @@ function generirajPodatke(stPacienta) {
       ime="Luka";
       priimek="Hrovat";
       datumrojstva="1990-8-13T15:12";
+      spol="m";
       visina="178";
       teza="70";
       vpritisk="110";
@@ -71,7 +74,8 @@ function generirajPodatke(stPacienta) {
   //generira podatke
   $.ajaxSetup({
     headers: {
-        "Authorization": authorization
+        "Authorization": authorization,
+        "Ehr-Session":getSessionId()
     }
   });
   $.ajax({
@@ -85,7 +89,13 @@ function generirajPodatke(stPacienta) {
             firstNames: ime,
             lastNames: priimek,
             dateOfBirth: datumrojstva,
-            partyAdditionalInfo: [{key: "ehrId",value: ehrId}]
+            partyAdditionalInfo: [{key: "ehrId",value: ehrId, 
+              key:"vital_signs/body_temperature/any_event/temperature|magnitude", value:temperatura,
+              key: "vital_signs/blood_pressure/any_event/systolic",value:vpritisk,
+              key: "vital_signs/blood_pressure/any_event/diastolic",value:npritisk,
+              key: "vital_signs/height_length/any_event/body_height_length",value:visina,
+              key: "vital_signs/body_weight/any_event/body_weight",value:teza,
+              key: "gender",value:spol}]
         };
         $.ajax({
             url: baseUrl + "/demographics/party",
@@ -95,13 +105,17 @@ function generirajPodatke(stPacienta) {
             success: function (party) {
                 if (party.action == 'CREATE') {
                     console.log("yay %s", ehrId);
-                    
+                    //vitalniZnaki(temperatura, vpritisk, npritisk, visina, teza, ehrId);
+                    $('#seznamID').append("*"+ehrId+" "+visina+" cm "+teza+" kg. *");
                 }
             }
            
         });
     }
   });
+}
+
+/*function vitalniZnaki(temperatura, vpritisk, npritisk, visina, teza, ehrId){
 
   var compositionData = {
     "ctx/language": "en",
@@ -117,10 +131,10 @@ function generirajPodatke(stPacienta) {
     "ehrId": ehrId,
     templateId: 'Vital Signs',
     format: 'FLAT',
-    committer: 'Medicinska sestra'
+    committer: ''
   };
   $.ajax({
-    url: baseUrl + "/composition?" + $.param(queryParams),
+    url: baseUrl + "/composition/" + ehrId,
     type: 'POST',
     contentType: 'application/json',
     data: JSON.stringify(compositionData),
@@ -128,9 +142,7 @@ function generirajPodatke(stPacienta) {
         console.log('yay podatki');
     }
   });
-   $('#bla').append(ehrId);
-  return ehrId;
-}
+}*/
 
 
 // TODO: Tukaj implementirate funkcionalnost, ki jo podpira vaša aplikacija
